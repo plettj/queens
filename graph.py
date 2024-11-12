@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-# Copyright Josiah Plett 2024
-
 
 def load_data(file_path):
     return pd.read_csv(file_path)
@@ -15,7 +13,7 @@ def save_plot(fig, save_directory="output", filename="queens_times_plot.png"):
 
     file_path = os.path.join(save_directory, filename)
 
-    # Save the plot with a transparent background
+    # save with a *transparent* background
     fig.savefig(file_path, transparent=True, dpi=300)
     print(f"Plot saved to {file_path}")
 
@@ -24,7 +22,7 @@ def calculate_stats(data):
     stats = {}
     global_times = data.copy()
 
-    # Calculate the fastest time globally, ignoring -1 values
+    # fastest time globally
     fastest_time, fastest_person, fastest_day = float("inf"), None, None
     for person in global_times.columns[1:]:
         for day, time in zip(global_times["Day"], global_times[person]):
@@ -39,7 +37,7 @@ def calculate_stats(data):
             "day": fastest_day,
         }
 
-    # Calculate the fastest overall average, ignoring -1 values
+    # fastest overall average
     avg_times = {
         person: global_times[person][global_times[person] != -1].mean()
         for person in global_times.columns[1:]
@@ -50,7 +48,7 @@ def calculate_stats(data):
         "average": avg_times[fastest_avg_person],
     }
 
-    # Calculate the fastest rolling average of 5 days, ignoring -1 values
+    # fastest average-of-5 (must be consecutive)
     min_rolling_avg, min_rolling_person, min_rolling_day = float("inf"), None, None
     for person, times in global_times.drop(columns="Day").items():
         rolling_avg = times.replace(-1, np.nan).rolling(window=5).mean().dropna()
@@ -68,8 +66,8 @@ def calculate_stats(data):
             "day": min_rolling_day,
         }
 
-    # Calculate the longest streak of consecutive days with valid times
-    max_streak, streak_person, streak_day = 0, None, 0
+    # longest unbroken streak
+    max_streak, streak_person, start_day = 0, None, 0
     for person in global_times.columns[1:]:
         longest_streak, current_streak, end_day = 0, 0, 0
         for day, time in zip(global_times["Day"], global_times[person]):
@@ -80,7 +78,7 @@ def calculate_stats(data):
             else:
                 current_streak = 0
         if longest_streak > max_streak:
-            max_streak, streak_person, streak_day = (
+            max_streak, streak_person, start_day = (
                 longest_streak,
                 person,
                 end_day - longest_streak + 1,
@@ -88,7 +86,7 @@ def calculate_stats(data):
     stats["Longest streak"] = {
         "person": streak_person,
         "streak": max_streak,
-        "day": streak_day,
+        "day": start_day,
     }
 
     return stats
@@ -98,7 +96,7 @@ def plot_data(data, stats):
     fig, ax = plt.subplots(figsize=(14, 8))
     plt.subplots_adjust(right=0.7)
 
-    # Define a color map for each person in the plot
+    # get the color of each person in the plot
     colors = {}
     lines = []
     for person in data.columns[1:]:
@@ -113,7 +111,7 @@ def plot_data(data, stats):
     max_time = data.iloc[:, 1:].replace(-1, np.nan).max().max()
     max_time = (int((max_time // 60 + 1) * 60)) if not np.isnan(max_time) else 60
 
-    # Add horizontal lines for minute intervals
+    # add horizontal lines for minute intervals
     for minute in range(60, max_time + 60, 60):
         plt.axhline(minute, color="gray", linestyle="--", linewidth=0.5, alpha=0.7)
 
@@ -124,13 +122,13 @@ def plot_data(data, stats):
     plt.title("Queens Times Over Time")
     plt.legend(handles=lines, loc="upper right", bbox_to_anchor=(1.3, 1))
 
-    # Display global stats on the plot in the right margin, line by line with color-coded text
-    x_pos = 0.78  # Left x position for the text box
-    y_pos = 0.7 - len(data.columns) * 0.015  # Starting y position for the text box
+    # display global stats on the plot in the right margin with color-coded text!
+    x_pos = 0.78
+    y_pos = 0.7 - len(data.columns) * 0.015
     for key, value in stats.items():
         person_color = colors.get(value.get("person"), "black")
 
-        # Display the title in bold
+        # display the title in bold
         plt.gcf().text(
             x_pos,
             y_pos,
@@ -144,14 +142,14 @@ def plot_data(data, stats):
         )
         y_pos -= 0.03
 
-        # Display the details in the person's color
+        # display the details in the person's color
         if "time" in value:
             detail_text = f"{value['person']} - {value['time']}s, Day: {value['day']}"
         elif "average" in value:
             detail_text = f"{value['person']} - {value['average']:.2f}s"
         elif "streak" in value:
             detail_text = (
-                f"{value['person']} - {value['streak']} days, Start Day: {value['day']}"
+                f"{value['person']} - {value['streak']} day{"s" if value['streak'] > 1 else ""}, Start Day: {value['day']}"
             )
 
         plt.gcf().text(
@@ -164,12 +162,15 @@ def plot_data(data, stats):
             va="top",
             transform=plt.gcf().transFigure,
         )
-        y_pos -= 0.05  # Move down for the next entry
+        y_pos -= 0.05
 
     plt.show()
 
-    # Save the plot into my graphs directory
+    # Save the *transparent* plot into the graphs directory
     save_plot(fig, save_directory="graphs", filename="transparent_plot.png")
+
+
+# Copyright Josiah Plett 2024
 
 
 def main():

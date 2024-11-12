@@ -3,11 +3,9 @@ import re
 import csv
 from collections import defaultdict
 
-# Copyright Josiah Plett 2024
-
 
 def parse_chat_file(input_file_path):
-    # Define the players (by LinkedIn display name),
+    # define the players (by LinkedIn display name),
     # their corresponding graph display names,
     # and their order on the graph.
     player_map = {
@@ -15,13 +13,12 @@ def parse_chat_file(input_file_path):
         "Bob McBobbins": "Bobby",
         # ...
     }
-    # Dynamically generate columns from player_map
+
+    # dynamically generate columns from player_map
     columns = ["Day"] + list(player_map.values())
 
-    # Initialize data structure
     data = defaultdict(lambda: {col: "-1" for col in columns[1:]})
 
-    # Regex patterns
     day_pattern = re.compile(r"Queens #(\d+)")
     sender_pattern = re.compile(r"^(.*) sent the following message")
     inline_time_pattern = re.compile(r"Queens #\d+(?: \|)?\s*(\d{1,2}:\d{2})")
@@ -38,7 +35,7 @@ def parse_chat_file(input_file_path):
             for line in file:
                 line = line.strip()
 
-                # Check if the line indicates a new sender
+                # check if the line indicates a new sender
                 sender_match = sender_pattern.search(line)
                 if sender_match:
                     sender_name_line = sender_match.group(1).strip()
@@ -46,12 +43,11 @@ def parse_chat_file(input_file_path):
                         current_sender = player_map[sender_name_line]
                     continue
 
-                # Update current sender if it matches a profile view line
                 if line in player_map:
                     current_sender = player_map[line]
                     continue
 
-                # Check for a day entry and time pattern in one step
+                # check for a day entry and time pattern in one step
                 day_match = day_pattern.search(line)
                 time_match = inline_time_pattern.search(line)
 
@@ -59,25 +55,23 @@ def parse_chat_file(input_file_path):
                     day_number = int(day_match.group(1))
                     time_value = time_match.group(1)
                     time_in_seconds = convert_to_seconds(time_value)
-
-                    # Use only the day number as the key
                     data[day_number]["Day"] = day_number
                     data[day_number][current_sender] = time_in_seconds
-                    continue  # Move to the next line after finding a day and time
+                    continue
 
-                # Additional check for multiline format, where time might be on the next line
+                # additional check for multiline format, where time might be on the next line
                 if day_match:
                     day_number = int(day_match.group(1))
                     data[day_number]["Day"] = day_number
                     continue
 
-                # Check if the line contains only a time pattern (used for cases where time is on a new line)
+                # check if the line contains only a time pattern (for when time is on a new line)
                 if time_pattern := re.match(r"^(\d{1,2}:\d{2})", line):
                     if day_number and current_sender:
                         time_value = time_pattern.group(1)
                         time_in_seconds = convert_to_seconds(time_value)
                         data[day_number][current_sender] = time_in_seconds
-                        day_number = None  # Reset after use to avoid misassignment
+                        day_number = None
                     continue
 
     except FileNotFoundError:
@@ -91,7 +85,6 @@ def parse_chat_file(input_file_path):
 
 
 def fill_missing_days(data, columns):
-    # Find the range of days
     all_days = sorted(data.keys())
     if not all_days:
         return []
@@ -99,13 +92,12 @@ def fill_missing_days(data, columns):
     min_day = all_days[0]
     max_day = all_days[-1]
 
-    # Ensure all days from min_day to max_day are present
+    # ensure there's no missing days in the chart
     filled_data = []
     for day in range(min_day, max_day + 1):
         if day in data:
             filled_data.append(data[day])
         else:
-            # Fill missing day with default "-1" values
             empty_day = {"Day": day}
             empty_day.update({col: "-1" for col in columns[1:]})
             filled_data.append(empty_day)
@@ -114,10 +106,9 @@ def fill_missing_days(data, columns):
 
 
 def write_csv(data, columns, output_file_path):
-    # Fill in missing days
+    # fill in missing days (might make this an option eventually)
     filled_data = fill_missing_days(data, columns)
 
-    # Sort and write to CSV
     try:
         with open(output_file_path, "w", newline="", encoding="utf-8") as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=columns)
@@ -131,14 +122,18 @@ def write_csv(data, columns, output_file_path):
         print(f"An error occurred while writing to the file: {e}")
 
 
+# Copyright Josiah Plett 2024
+
+
 def main():
-    # Construct the full paths to the input and output files
     input_file_path = "data/full-chat.txt"
     output_file_path = "data/queens-times.csv"
 
-    # Check if the input file exists
+    # check if the input file exists
     if not os.path.exists(input_file_path):
-        print(f"Error: The input file was not found at {input_file_path}")
+        print(
+            f"Error: Looks like {input_file_path} was deleted. Please ensure the file exists."
+        )
         return
 
     data, columns = parse_chat_file(input_file_path)
