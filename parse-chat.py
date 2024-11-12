@@ -7,17 +7,16 @@ from collections import defaultdict
 
 
 def parse_chat_file(input_file_path):
-    # Define the column order
-    columns = [
-        "Day",
-        "Adrien",
-        "Josiah",
-        "Ben",
-        "Marshall",
-        "Justin",
-        "Nicole",
-        "Alex",
-    ]
+    # Define the players (by LinkedIn display name),
+    # their corresponding graph display names,
+    # and their order on the graph.
+    player_map = {
+        "Josiah Plett": "Josiah",
+        "Bob McBobbins": "Bobby",
+        # ...
+    }
+    # Dynamically generate columns from player_map
+    columns = ["Day"] + list(player_map.values())
 
     # Initialize data structure
     data = defaultdict(lambda: {col: "-1" for col in columns[1:]})
@@ -25,20 +24,9 @@ def parse_chat_file(input_file_path):
     # Regex patterns
     day_pattern = re.compile(r"Queens #(\d+)")
     sender_pattern = re.compile(r"^(.*) sent the following message")
-    # This regex looks for time directly after "Queens #" entries
     inline_time_pattern = re.compile(r"Queens #\d+(?: \|)?\s*(\d{1,2}:\d{2})")
 
     current_sender = None
-
-    sender_map = {
-        "Adrien Fraser": "Adrien",
-        "Josiah Plett": "Josiah",
-        "Ben DePetris": "Ben",
-        "Marshall Cowie": "Marshall",
-        "Justin Zwart": "Justin",
-        "Nicole Planeta": "Nicole",
-        "Alex Fraser": "Alex",
-    }
 
     def convert_to_seconds(time_str):
         """Converts a time string in the format mm:ss to total seconds."""
@@ -54,13 +42,13 @@ def parse_chat_file(input_file_path):
                 sender_match = sender_pattern.search(line)
                 if sender_match:
                     sender_name_line = sender_match.group(1).strip()
-                    if sender_name_line in sender_map:
-                        current_sender = sender_map[sender_name_line]
+                    if sender_name_line in player_map:
+                        current_sender = player_map[sender_name_line]
                     continue
 
                 # Update current sender if it matches a profile view line
-                if line in sender_map:
-                    current_sender = sender_map[line]
+                if line in player_map:
+                    current_sender = player_map[line]
                     continue
 
                 # Check for a day entry and time pattern in one step
@@ -70,7 +58,6 @@ def parse_chat_file(input_file_path):
                 if day_match and time_match and current_sender:
                     day_number = int(day_match.group(1))
                     time_value = time_match.group(1)
-                    # Convert time to total seconds
                     time_in_seconds = convert_to_seconds(time_value)
 
                     # Use only the day number as the key
@@ -80,7 +67,6 @@ def parse_chat_file(input_file_path):
 
                 # Additional check for multiline format, where time might be on the next line
                 if day_match:
-                    # Extract day number and prepare the day_key
                     day_number = int(day_match.group(1))
                     data[day_number]["Day"] = day_number
                     continue
@@ -88,7 +74,6 @@ def parse_chat_file(input_file_path):
                 # Check if the line contains only a time pattern (used for cases where time is on a new line)
                 if time_pattern := re.match(r"^(\d{1,2}:\d{2})", line):
                     if day_number and current_sender:
-                        # Use previously captured day_number and current_sender for this time
                         time_value = time_pattern.group(1)
                         time_in_seconds = convert_to_seconds(time_value)
                         data[day_number][current_sender] = time_in_seconds
