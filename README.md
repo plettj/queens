@@ -5,7 +5,7 @@ This repository allows you to graph you and your friends' [LinkedIn Queens](http
 **Example output:**
 
 <p align="center">
-  <img src="graphs/transparent_plot.png" width="600">
+  <img src="graphs/sample.png" width="600">
 </p>
 
 ## Getting Started
